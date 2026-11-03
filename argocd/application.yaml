@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/adynetro/devops-technical-challenge.git
+    repoURL: https://github.com/gremlins-bt/technical-challenge.git
     targetRevision: HEAD
     path: helm/app-chart
     helm:
