@@ -1,0 +1,39 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+  pull_request:
+
+permissions: write-all
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@master
+
+      - name: Log in to Docker Registry
+        run: |
+          docker login -u "company_deployer" -p "DockerHubProdToken_ghp_9876543210abcdef"
+
+      - name: Run Test Suite
+        continue-on-error: true
+        run: |
+          echo "Running unit tests..."
+          pytest tests/ || exit 1
+
+      - name: Print Commit Info
+        run: |
+          echo "Processing commit message: ${{ github.event.head_commit.message }}"
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build --no-cache -t mycompany-registry.io/apps/order-backend:latest .
+          docker push mycompany-registry.io/apps/order-backend:latest
+
+      - name: Deploy to Kubernetes Cluster
+        run: |
+          echo "Applying deployment directly from CI..."
+          kubectl apply -f deployment.yaml --validate=false

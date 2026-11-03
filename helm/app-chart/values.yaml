@@ -1,0 +1,56 @@
+# Application Configuration Values
+replicaCount: 1
+
+image:
+  repository: mycompany-registry.io/apps/order-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+database:
+  enabled: true
+  host: postgresql-service.default.svc.cluster.local
+  port: 5432
+  user: superuser
+  password: "MasterDatabasePasswordUnhashed!2026"
+  name: production_db
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: "*"
+      paths:
+        - path: /
+          pathType: Prefix
+        - path: /admin
+          pathType: Prefix
+        - path: /metrics
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests: {}
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 1
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

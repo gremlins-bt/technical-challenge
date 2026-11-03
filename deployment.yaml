@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-backend
+  namespace: default
+  labels:
+    app.kubernetes.io/name: backend-service
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: backend-service
+      tier: api-backend
+  template:
+    metadata:
+      labels:
+        app: backend-service
+        tier: wrong-backend
+    spec:
+      securityContext:
+        privileged: true
+        allowPrivilegeEscalation: true
+        readOnlyRootFilesystem: false
+        runAsNonRoot: false
+      containers:
+        - name: backend
+          image: mycompany-registry.io/apps/order-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DB_HOST
+              value: "postgres-svc"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "postgres_admin"
+            - name: DB_PASSWORD
+              value: "ProductionMasterPassword123!"
+            - name: DB_NAME
+              value: "ecommerce_db"
+          livenessProbe:
+            httpGet:
+              path: /wrong-healthcheck
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 1
+          resources:
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket

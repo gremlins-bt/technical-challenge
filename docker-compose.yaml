@@ -1,0 +1,44 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: challenge-postgres
+    environment:
+      POSTGRES_USER: postgres_admin
+      POSTGRES_PASSWORD: postgres_secret
+      POSTGRES_DB: ecommerce_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_admin -d ecommerce_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: challenge-backend
+    environment:
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USER: postgres_admin
+      DB_PASSWORD: postgres_secret
+      DB_NAME: ecommerce_db
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: challenge-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

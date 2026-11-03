@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Challenge - 3-Tier Order Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-slate-800 gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg text-xl border border-indigo-500/30">
+                        <i class="fa-solid fa-server"></i>
+                    </span>
+                    <h1 class="text-2xl font-bold tracking-tight">DevOps Challenge Application</h1>
+                </div>
+                <p class="text-slate-400 text-sm mt-1">3-Tier Cloud-Native Architecture (Frontend &bull; Backend &bull; Database)</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="backend-status" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Backend: Checking...
+                </span>
+                <span id="db-status" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> DB: Checking...
+                </span>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-8">
+            <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/50">
+                <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Orders</div>
+                <div id="stat-count" class="text-3xl font-extrabold text-white mt-1">0</div>
+            </div>
+            <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/50">
+                <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Volume</div>
+                <div id="stat-volume" class="text-3xl font-extrabold text-emerald-400 mt-1">$0.00</div>
+            </div>
+            <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/50">
+                <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Application Tier</div>
+                <div class="text-lg font-bold text-indigo-400 mt-2">Kubernetes &bull; Helm</div>
+            </div>
+        </div>
+
+        <!-- Orders Table & Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Table (2 cols) -->
+            <div class="lg:col-span-2 bg-slate-800/40 rounded-xl border border-slate-800 overflow-hidden">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h2 class="font-semibold text-slate-200">Recent Orders</h2>
+                    <button onclick="fetchOrders()" class="text-xs px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 transition">
+                        <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th class="px-4 py-3">ID</th>
+                                <th class="px-4 py-3">Customer</th>
+                                <th class="px-4 py-3">Item</th>
+                                <th class="px-4 py-3">Amount</th>
+                                <th class="px-4 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody" class="divide-y divide-slate-800/60">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading orders...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add Order Form -->
+            <div class="bg-slate-800/40 p-5 rounded-xl border border-slate-800 h-fit">
+                <h2 class="font-semibold text-slate-200 mb-4">Create New Order</h2>
+                <form id="order-form" onsubmit="handleCreateOrder(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Customer Name</label>
+                        <input type="text" id="cust-name" required placeholder="e.g. Acme Cloud Corp"
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Item Description</label>
+                        <input type="text" id="item-name" required placeholder="e.g. Dedicated Worker Node"
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Amount ($)</label>
+                        <input type="number" step="0.01" id="order-amount" required placeholder="199.99"
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg text-sm text-white transition flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Submit Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/v1/orders';
+        const READY_URL = '/ready';
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(READY_URL);
+                if (res.ok) {
+                    document.getElementById('backend-status').className = 'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                    document.getElementById('backend-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Backend: Online';
+                    document.getElementById('db-status').className = 'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                    document.getElementById('db-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> DB: Connected';
+                } else {
+                    throw new Error('Not ready');
+                }
+            } catch (e) {
+                document.getElementById('backend-status').className = 'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                document.getElementById('backend-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span> Backend: Offline';
+                document.getElementById('db-status').className = 'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                document.getElementById('db-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span> DB: Disconnected';
+            }
+        }
+
+        async function fetchOrders() {
+            await checkHealth();
+            const tbody = document.getElementById('orders-tbody');
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error('API error');
+                const orders = await res.json();
+                
+                document.getElementById('stat-count').innerText = orders.length;
+                const volume = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+                document.getElementById('stat-volume').innerText = '$' + volume.toFixed(2);
+
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No orders found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = orders.map(o => `
+                    <tr class="hover:bg-slate-800/30 transition">
+                        <td class="px-4 py-3 font-mono text-xs text-slate-400">#${o.id}</td>
+                        <td class="px-4 py-3 font-medium text-slate-200">${o.customer_name}</td>
+                        <td class="px-4 py-3 text-slate-300">${o.item}</td>
+                        <td class="px-4 py-3 text-emerald-400 font-semibold">$${Number(o.amount).toFixed(2)}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded font-medium ${
+                                o.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                o.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }">${o.status}</span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-rose-400">Failed to load orders from backend.</td></tr>`;
+            }
+        }
+
+        async function handleCreateOrder(e) {
+            e.preventDefault();
+            const customer_name = document.getElementById('cust-name').value;
+            const item = document.getElementById('item-name').value;
+            const amount = parseFloat(document.getElementById('order-amount').value);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({customer_name, item, amount})
+                });
+                if (!res.ok) throw new Error('Create failed');
+                document.getElementById('order-form').reset();
+                await fetchOrders();
+            } catch (err) {
+                alert('Error creating order: ' + err.message);
+            }
+        }
+
+        // Initial fetch
+        fetchOrders();
+        setInterval(fetchOrders, 10000);
+    </script>
+</body>
+</html>
